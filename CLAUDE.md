@@ -81,4 +81,18 @@ Scaffolded 2026-11-08 (see [context/decisions.md](context/decisions.md)):
   Settlement's own political standing with its controlling Kingdom, as distinct from player
   reputation. **Nothing in this whole feature arc has been live-tested yet.**
 
+**World-spawn Kingdom generation gained an EAGER/LAZY timing toggle, 2026-11-09** (see
+[context/decisions.md](context/decisions.md)) — found incidentally while boot-testing an unrelated
+new mod: `kingdom.KingdomGenerator#generateInitialKingdom`'s `Geometry.Polygon.expandedBy` call was
+slow enough on the shared Dev Server's own settlement layout to trip the server watchdog during
+boot (not a risk to Production, which already generated and persisted its own Kingdom
+successfully before this was noticed). The underlying performance issue in `expandedBy` itself is
+still open, not fixed this pass — explicit user choice. New `config.TerrytoriesConfig
+#KINGDOM_GENERATION_TIMING` lets `kingdom.KingdomBootstrap` run the one-time generation either
+EAGER (default, at `ServerStartingEvent`, original behavior) or LAZY (deferred ~1 real minute into
+the first tick after boot, off the startup path). `./gradlew build` green, whole-suite (17 mods)
+rebuild + `runServer` boot-smoke-test clean with the Dev Server set to LAZY. **The LAZY path's
+actual firing hasn't been directly observed yet** — only its mechanical soundness and that it gets
+boot off the critical path are confirmed so far.
+
 See [context/classes/](context/classes/) for per-class reference, once there is one.
