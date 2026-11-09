@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.github.cerealklla.cartographyr.api.Cartography;
 import com.github.cerealklla.terrytories.api.Terrytories;
+import com.github.cerealklla.terrytories.config.TerrytoriesConfig;
 import com.github.cerealklla.terrytories.faction.FactionBootstrap;
 import com.github.cerealklla.terrytories.kingdom.KingdomBootstrap;
 import com.github.cerealklla.terrytories.kingdom.KingdomLayer;
@@ -24,6 +25,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -38,6 +40,7 @@ public class TerrytoriesMod {
     public TerrytoriesMod(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerPayloads);
+        modContainer.registerConfig(ModConfig.Type.SERVER, TerrytoriesConfig.SPEC);
 
         Cartography.registerLayer(KingdomLayer.LAYER);
 
