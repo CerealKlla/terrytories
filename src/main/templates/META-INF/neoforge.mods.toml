@@ -74,3 +74,12 @@ standing.
     reason="Sends the one-time 'found your own settlement' letter through its mail API."
     ordering="AFTER"
     side="BOTH"
+
+# Lyfe is optional -- town-defense reputation credits every assisting player via its General
+# assist-marker system if it happens to be loaded (see bridge.LyfeAssistBridge).
+[[dependencies.${mod_id}]]
+    modId="lyfe"
+    type="optional"
+    reason="Credits every assisting player for town-defense reputation via the assist-marker system."
+    ordering="NONE"
+    side="BOTH"

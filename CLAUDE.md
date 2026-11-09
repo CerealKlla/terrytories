@@ -43,10 +43,42 @@ Scaffolded 2026-11-08 (see [context/decisions.md](context/decisions.md)):
   — both needed so this mod (and Arryval's own new "do 10 quests for your village" quest) can learn
   which settlement a completed quest was actually done for, without either consumer needing to
   enumerate every quest id that will ever exist.
-- Only the bare mod skeleton exists so far (`TerrytoriesMod`, logs "Terrytories common setup" on
-  boot). `./gradlew build` green standalone. **Nothing else built yet** — see
-  [context/design-document.md](context/design-document.md) for the full phased plan (reputation
-  data model/API, combat/targeting hooks, economy/quest-gating hooks, world-spawn Kingdom
-  generation, the mayor's letter).
+- **Phase D (reputation core) built, 2026-11-08** (see [context/decisions.md](context/decisions.md)):
+  per-player `data.ReputationLedger` (settlement + kingdom, modeled on Lyfe's own `PlayerSkills`),
+  `reputation.Standing` tiers (Hostile/Neutral/Friendly), `reputation.ReputationHooks` (generic
+  standing-changed hook), quest-completion reputation gain, combat reputation loss + Friendly mutual
+  damage immunity, and Guard hostile-targeting (via a new Settlemynts-side extension point — Guards
+  only, worker NPCs/tagged natural Villagers have no combat capability to extend). `api.Terrytories`
+  facade is the real public surface. `./gradlew build` green, whole-suite (15 mods) rebuild green.
+  **Not yet live-tested** — no in-game way to view a reputation value yet (no HUD/command).
+- **Reputation tab added to Nuclyus's shared K menu, 2026-11-08** — a scrollable list of every
+  settlement with nonzero reputation (name, value, standing), via a dedicated request/response
+  payload pair. First client-only code in this mod (`TerrytoriesModClient`). **Not yet
+  live-tested.**
+- **Phase E built, 2026-11-08** (see [context/decisions.md](context/decisions.md)): Friendly
+  settlements grant a Shop price bonus (Settlemynts' new `bridge.TerrytoriesReputationBridge`,
+  composed with the Merchant-skill bonus); Myssions gained a new player-aware
+  `quest.QuestAcceptanceGate` for reputation-gated quest acceptance (pure infra, no quest uses it
+  yet). Trade-route gating and Kingdom-settlement standing remain deferred (no existing hook /
+  unsettled design, respectively).
+- **Phase F complete, 2026-11-08**: world-spawn Kingdom generation (a new `terrytories:kingdom`
+  Cartographyr layer, nearest 8 settlements to origin convex-hulled and buffered into one Kingdom
+  polygon on first boot) and the mayor's founding letter (Arryval's own `starttown
+  .FoundingLetterListener`, subscribed to this mod's generic `reputation.ReputationHooks` — no
+  code needed here at all, confirming the "Terrytories never depends on Arryval" dependency
+  direction held up in practice).
+- **Reputation model reworked around a real Faction list, same day** (see
+  [context/decisions.md](context/decisions.md)) — explicit user correction: Factions (e.g. "Town of
+  Cresview," "Kingdom of Dern") are now first-class, and a Settlement separately carries one data
+  point, which Faction currently controls it. New `faction` package
+  (`FactionRecord`/`FactionStore`/`SettlementControlStore`, both server-wide). The old Settlement-vs-
+  Kingdom ledger split is gone — one unified `FACTION_REPUTATION` ledger, since a settlement already
+  doubles as its own implicit Faction. The world-spawn Kingdom is now a real minted Faction
+  controlling its 8 member settlements. **This closes out the full original plan, Phases A-F, end
+  to end.** See [context/design-document.md](context/design-document.md)'s "Open,
+  deliberately-deferred items" section for what's intentionally still not built — trade-route
+  gating, and (confirmed still unsettled, explicitly re-stated by the user this same session) a
+  Settlement's own political standing with its controlling Kingdom, as distinct from player
+  reputation. **Nothing in this whole feature arc has been live-tested yet.**
 
 See [context/classes/](context/classes/) for per-class reference, once there is one.

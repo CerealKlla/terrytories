@@ -116,6 +116,13 @@ dependencies {
     testCompileOnly files("../Coryspondance/build/libs/coryspondance-${coryspondance_version}.jar")
     testRuntimeOnly files("../Coryspondance/build/libs/coryspondance-${coryspondance_version}.jar")
 
+    // Lyfe is an OPTIONAL soft dependency (see neoforge.mods.toml) -- town-defense reputation
+    // credits every assisting player via Lyfe's General assist-marker system (bridge
+    // .LyfeAssistBridge), gated behind ModList.get().isLoaded("lyfe") at runtime.
+    compileOnly files("../Lyfe/build/libs/lyfe-${lyfe_version}.jar")
+    testCompileOnly files("../Lyfe/build/libs/lyfe-${lyfe_version}.jar")
+    testRuntimeOnly files("../Lyfe/build/libs/lyfe-${lyfe_version}.jar")
+
     // Plain JUnit 5 for pure logic tests (no live server/registry needed, so ModDevGradle's
     // neoForge { unitTest {} } FML-bootstrap machinery isn't required for these).
     testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
