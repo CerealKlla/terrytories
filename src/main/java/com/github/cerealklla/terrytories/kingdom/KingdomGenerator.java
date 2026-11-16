@@ -93,7 +93,7 @@ public final class KingdomGenerator {
 
         Geometry hull = Geometry.Polygon.convexHull(points);
         Geometry kingdomGeometry = hull instanceof Geometry.Polygon polygon
-                ? Geometry.Polygon.expandedBy(polygon, BUFFER_BLOCKS)
+                ? expandConvexHullByRadialOffset(polygon, BUFFER_BLOCKS)
                 : hull; // degenerate/collinear input -- Geometry.Polygon.convexHull's own fallback, left unbuffered rather than guessed at.
 
         String kingdomName = "The Kingdom"; // placeholder -- no naming system exists for this yet.
@@ -116,5 +116,41 @@ public final class KingdomGenerator {
         double x = entity.geometry().centerBlockX();
         double z = entity.geometry().centerBlockZ();
         return x * x + z * z;
+    }
+
+    /**
+     * Pushes every vertex of {@code polygon} radially outward from its centroid by exactly {@code
+     * blocks}, so each vertex ends up {@code blocks} farther from the centroid than it started --
+     * O(vertex count), not O(area). Added 2026-11-15 to replace a direct call to Cartographyr's own
+     * {@code Geometry.Polygon#expandedBy}, which rasterizes the whole polygon into individual 1x1
+     * block cells and 8-connected-flood-fills that outward {@code blocks} times -- fine at
+     * settlement/plot buffer scale (tens/hundreds of blocks), but it choked a real Production boot:
+     * a kingdom-scale hull spanning thousands of blocks meant tens of millions of cells, taking over
+     * the Server Watchdog's 60-second single-tick budget and getting the whole server killed as
+     * "crashed" (confirmed via the resulting crash report's stack, landing in {@code
+     * Geometry.Polygon#traceOuterBoundary}). A radial offset is a safe substitute specifically here
+     * -- unlike the settlement/plot buffers {@code expandedBy} was built for, a convex hull (this
+     * method's only caller) has no concavity for a naive centroid-relative scale to cut across; see
+     * {@code expandedBy}'s own doc for why that concavity concern ruled out this exact technique
+     * there.
+     */
+    private static Geometry.Polygon expandConvexHullByRadialOffset(Geometry.Polygon polygon, int blocks) {
+        List<Geometry.Polygon.Vertex> vertices = polygon.vertices();
+        double centroidX = vertices.stream().mapToDouble(Geometry.Polygon.Vertex::x).average().orElse(0);
+        double centroidZ = vertices.stream().mapToDouble(Geometry.Polygon.Vertex::z).average().orElse(0);
+        List<Geometry.Polygon.Vertex> expanded = new ArrayList<>(vertices.size());
+        for (Geometry.Polygon.Vertex v : vertices) {
+            double dx = v.x() - centroidX;
+            double dz = v.z() - centroidZ;
+            double distance = Math.sqrt(dx * dx + dz * dz);
+            if (distance < 1e-6) {
+                expanded.add(v);
+                continue;
+            }
+            double scale = (distance + blocks) / distance;
+            expanded.add(new Geometry.Polygon.Vertex(
+                    (int) Math.round(centroidX + dx * scale), (int) Math.round(centroidZ + dz * scale)));
+        }
+        return new Geometry.Polygon(expanded);
     }
 }
