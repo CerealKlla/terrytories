@@ -24,16 +24,23 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
  * quest.QuestKillListener} already uses).
  *
  * <p>"Within a settlement" is resolved via {@code api.Settlemynts#findPlotAt} at the mob's death
- * position -- any of the settlement's own finalized plots, the same real territory check every
- * other "is this position part of settlement X" call in this suite already uses. A hostile mob
- * killed just outside every plot (open ground between buildings, the settlement's outer buffer)
- * doesn't count -- a deliberate, narrower scope than "anywhere near the settlement," consistent
- * with how plot-based territory is resolved everywhere else.
+ * position first (any of the settlement's own finalized plots), falling back to {@code
+ * #findSettlementCoreIdNear} (added 2026-11-17, real report: "I think I'm only gaining settlement
+ * rep for defense if I'm standing in a plot, not within the settlement perimeter") for anywhere
+ * else inside the settlement's own overall registered polygon -- open ground between buildings,
+ * roads, the commons a Guard's own patrol route actually spends most of its time on. The original
+ * plot-only scope was a deliberate choice at the time, but in practice a hostile mob is at least as
+ * likely to die on a road or in open ground as inside a specific plot's own tighter polygon, so
+ * restricting credit to plots alone silently missed most real defense. Still doesn't extend past
+ * the settlement's own outer buffer -- a kill genuinely outside the settlement doesn't count.
  */
 public final class TownDefenseReputationListener {
 
     /** Placeholder/tunable -- deliberately small, this is incidental defense, not a dedicated quest. No controlling-Kingdom trickle (see {@code QuestReputationListener}'s own doc) -- that's quest-specific, not applied here. */
     public static final int REPUTATION_PER_DEFENSE_KILL = 1;
+
+    /** Zero margin -- strictly within the settlement's own registered polygon (which already includes its outer buffer), not beyond it. See this class's own doc for why a plot-only check isn't enough. */
+    private static final double SETTLEMENT_PERIMETER_MARGIN_BLOCKS = 0.0;
 
     @SubscribeEvent
     public void onDeath(LivingDeathEvent event) {
@@ -43,6 +50,7 @@ public final class TownDefenseReputationListener {
         }
         UUID settlementCoreId = Settlemynts.findPlotAt(level, deadMob.blockPosition())
                 .map(Settlemynts.PlotHandle::settlementCoreId)
+                .or(() -> Settlemynts.findSettlementCoreIdNear(level, deadMob.blockPosition(), SETTLEMENT_PERIMETER_MARGIN_BLOCKS))
                 .orElse(null);
         if (settlementCoreId == null) {
             return;
