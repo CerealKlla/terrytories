@@ -43,7 +43,7 @@ public final class QuestReputationListener {
         if (reason != QuestEndHooks.EndReason.COMPLETED || !(player.level() instanceof ServerLevel level)) {
             return;
         }
-        Myssions.getIssuingPlotId(instanceId)
+        Myssions.getIssuingPlotId(level.getServer(), instanceId)
                 .flatMap(plotId -> Settlemynts.findSettlementCoreIdForPlot(level, plotId))
                 .ifPresent(settlementCoreId -> {
                     Terrytories.adjustReputation(player, settlementCoreId, REPUTATION_PER_QUEST);
