@@ -15,8 +15,14 @@ import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
  * "Attacking NPCs for a settlement reduces your rep with that settlement substantially" + "above a
  * certain amount you'll be 'Friendly' to that Settlement's NPCs, meaning you cannot damage each
  * other any more" -- explicit user spec, both halves. Resolves a settlement NPC via {@code
- * api.Settlemynts#findPlotIdForEntity}/{@code #findSettlementCoreIdForPlot} (the same three-way
- * worker/Guard/tagged-natural-Villager lookup Settlemynts already uses internally).
+ * api.Settlemynts#findSettlementCoreIdForEntity} (worker/tagged-natural-Villager via its plot, or a
+ * Guard directly via its own {@code effectiveSettlementCoreId} -- see that facade method's own doc).
+ *
+ * <p>Real fix, 2026-11-17: this used to resolve only via {@code findPlotIdForEntity}, which returns
+ * nothing at all for a natural-village Guard (no real {@code plotId} exists for one) -- silently
+ * defeating BOTH halves below for any such Guard, which is exactly what let a Friendly player keep
+ * landing real, rep-costing hits on one ("I was friendly with my town and then was still able to
+ * damage them and lost a shit load of reputation again").
  *
  * <p>Two separate real events, deliberately: {@link LivingIncomingDamageEvent} (fires before damage
  * is actually applied, same event {@code lyfe.durability.UnbreakableToolListener} already zeroes
@@ -52,8 +58,7 @@ public final class CombatReputationListener {
         if (!(event.getSource().getEntity() instanceof ServerPlayer attacker) || attacker == event.getEntity()) {
             return;
         }
-        Settlemynts.findPlotIdForEntity(event.getEntity())
-                .flatMap(plotId -> Settlemynts.findSettlementCoreIdForPlot(level, plotId))
+        Settlemynts.findSettlementCoreIdForEntity(level, event.getEntity())
                 .ifPresent(settlementCoreId -> Terrytories.adjustReputation(attacker, settlementCoreId, REPUTATION_LOSS_PER_ATTACK));
     }
 
@@ -63,14 +68,10 @@ public final class CombatReputationListener {
     /** Either direction (player attacking a settlement NPC, or a settlement NPC attacking a player) resolves to the same pair -- Friendly immunity is symmetric. */
     private static java.util.Optional<MutualPair> resolveMutualPair(ServerLevel level, Entity attacker, LivingEntity victim) {
         if (attacker instanceof ServerPlayer player) {
-            return Settlemynts.findPlotIdForEntity(victim)
-                    .flatMap(plotId -> Settlemynts.findSettlementCoreIdForPlot(level, plotId))
-                    .map(coreId -> new MutualPair(player, coreId));
+            return Settlemynts.findSettlementCoreIdForEntity(level, victim).map(coreId -> new MutualPair(player, coreId));
         }
         if (victim instanceof ServerPlayer player) {
-            return Settlemynts.findPlotIdForEntity(attacker)
-                    .flatMap(plotId -> Settlemynts.findSettlementCoreIdForPlot(level, plotId))
-                    .map(coreId -> new MutualPair(player, coreId));
+            return Settlemynts.findSettlementCoreIdForEntity(level, attacker).map(coreId -> new MutualPair(player, coreId));
         }
         return java.util.Optional.empty();
     }
