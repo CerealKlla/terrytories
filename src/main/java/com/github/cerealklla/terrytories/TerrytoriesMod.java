@@ -14,6 +14,7 @@ import com.github.cerealklla.terrytories.kingdom.KingdomLayer;
 import com.github.cerealklla.terrytories.network.ReputationPayload;
 import com.github.cerealklla.terrytories.network.RequestReputationPayload;
 import com.github.cerealklla.terrytories.reputation.CombatReputationListener;
+import com.github.cerealklla.terrytories.reputation.GuardFriendlinessBridge;
 import com.github.cerealklla.terrytories.reputation.GuardHostilityBridge;
 import com.github.cerealklla.terrytories.reputation.QuestReputationListener;
 import com.github.cerealklla.terrytories.reputation.ReputationGainPayload;
@@ -50,6 +51,7 @@ public class TerrytoriesMod {
         NeoForge.EVENT_BUS.register(new FactionBootstrap());
         NeoForge.EVENT_BUS.register(new KingdomBootstrap());
         GuardHostilityBridge.install();
+        GuardFriendlinessBridge.install();
     }
 
     private void commonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
